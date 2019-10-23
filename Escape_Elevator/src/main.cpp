@@ -14,7 +14,7 @@
 //Configurations
 
 //Values 
-#define LONGPRESSTIME 1000 
+#define LONGPRESSTIME 1000UL
 
 #define MOT_ELE_MAXSPEED 8000
 #define MOT_ELE_ACCEL 1500
@@ -56,7 +56,7 @@ bool RED_isPushed(){
   return !pcf8574.read(BTN_RED);
 }
 
-long RED_pushedsince;
+unsigned long RED_pushedsince;
 bool RED_isHeld(){
   if(RED_isPushed()){
     if(RED_pushedsince == 0) RED_pushedsince = millis();
@@ -115,6 +115,7 @@ enum state actualState = INIT;
 
 bool firstRun = true;
 int initial_homing=0;
+unsigned long lastgreenpush=0;
 
 void prog(){
   switch(actualState){
@@ -176,6 +177,7 @@ void prog(){
       openMir();
       delay(200);
       actualState = STOP;
+      firstRun=true;
       break;
 
     case STOP:
@@ -186,19 +188,18 @@ void prog(){
       }
       mot_ele.moveTo(MOT_ELE_MAX);
       if(GREEN_isPushed()){
+        lastgreenpush=millis();
         actualState = RESET;
         firstRun = true;
       }
       break;
 
     case RESET:
-            closeMir();
       if(firstRun){
         Serial.println("Resetting Game");
         firstRun = false;
         mot_ele.moveTo(MOT_ELE_MAX);
         closeMir();
-        delay(2000);
       }
       if(RED_isPushed()){
          mot_ele.stop();
@@ -213,7 +214,7 @@ void prog(){
         Serial.println("Game ready");
         firstRun = false;
       }
-      if(GREEN_isPushed()){
+      if(GREEN_isPushed()&&(millis()-lastgreenpush>1500UL)){
         actualState = STARTING;
         firstRun = true;
       }
@@ -234,9 +235,9 @@ void prog(){
       if(mot_ele.distanceToGo()==0){
         if(ES_isPushed() || GREEN_isPushed()){
           actualState = PLAY_NOSOLVED;
+          lastgreenpush=millis();
           firstRun = true;
           mot_ele.setCurrentPosition(0);
-          delay(2000);
         }
         else{
           mot_ele.moveTo(initial_homing);
@@ -257,9 +258,10 @@ void prog(){
         Serial.println("Game running");
         firstRun = false;
       }
-      if(GREEN_isPushed() || CC_isPushed()){
+      if((GREEN_isPushed()&&(millis()-lastgreenpush>1500UL)) || CC_isPushed()){
         actualState = PLAY_CCSOLVED_OPENING;
         firstRun = true;
+        lastgreenpush=millis();
       }
       if(RED_isPushed()){
         mot_ele.stop();
@@ -270,12 +272,9 @@ void prog(){
 
     case PLAY_CCSOLVED_OPENING:
         Serial.println("Cables solved, opening mirror");
-        firstRun = false;
-        openMir();
-        delay(2000);
-      
+        openMir();      
         actualState = PLAY_CCSOLVED;
-
+        firstRun=true;
       break;
 
     case PLAY_CCSOLVED:
@@ -283,7 +282,8 @@ void prog(){
         Serial.println("Cables soved, mirror opened");
         firstRun = false;
       }
-      if(GREEN_isPushed()||CL_isPushed()){
+      if((GREEN_isPushed()&&(millis()-lastgreenpush>1500UL))||CL_isPushed()){
+        lastgreenpush=millis();
         actualState = PLAY_LCSOLVED_OPENING;
         firstRun = true;
       }
