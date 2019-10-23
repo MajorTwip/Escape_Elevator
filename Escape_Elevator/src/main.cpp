@@ -84,13 +84,15 @@ bool GREEN_isHeld(){
 
 void closeMir(){
   digitalWrite(MOT_MIR_OPEN,LOW);
+  delay(100);
   digitalWrite(MOT_MIR_CLOSE,HIGH);
 }
 
 
-void openMir(){
-  digitalWrite(MOT_MIR_OPEN,HIGH);
+void openMir(){  
   digitalWrite(MOT_MIR_CLOSE,LOW);
+  delay(100);
+  digitalWrite(MOT_MIR_OPEN,HIGH);
 }
 
 //list of states
@@ -172,6 +174,7 @@ void prog(){
       
     case INIT_MIR:
       openMir();
+      delay(200);
       actualState = STOP;
       break;
 
@@ -229,9 +232,10 @@ void prog(){
         initial_homing=0;
       }
       if(mot_ele.distanceToGo()==0){
-        if(ES_isPushed || GREEN_isPushed){
+        if(ES_isPushed() || GREEN_isPushed()){
           actualState = PLAY_NOSOLVED;
           firstRun = true;
+          mot_ele.setCurrentPosition(0);
           delay(2000);
         }
         else{
@@ -239,8 +243,6 @@ void prog(){
           initial_homing--;
           delay(5);
         }
-        actualState = PLAY_NOSOLVED;
-        firstRun = true;
       }
       
       if(RED_isPushed()){
@@ -324,7 +326,8 @@ void setup() {
 
   pinMode(MOT_MIR_OPEN,OUTPUT);
   pinMode(MOT_MIR_CLOSE,OUTPUT);
-
+  digitalWrite(MOT_MIR_OPEN,LOW);
+  digitalWrite(MOT_MIR_CLOSE,LOW);
 }
 
 void loop() {
